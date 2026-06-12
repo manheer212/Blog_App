@@ -1,237 +1,217 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
-import { LogOut, Edit, Trash2, Plus, AlertTriangle, LayoutDashboard, FileText, User, X, BookOpen } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useNavigate } from 'react-router-dom';
+import {
+  AlertTriangle,
+  BookOpen,
+  Edit,
+  FileText,
+  LogOut,
+  Plus,
+  Trash2,
+  User,
+  X,
+} from 'lucide-react';
+import './App.css';
+import { authService } from './services/authService';
 import { postService } from './services/postService';
 
-// ==========================================
-// 1. PUBLIC AUTHENTICATION PAGE (Login & Register)
-// ==========================================
+const getErrorMessage = (error, fallback = 'Something went wrong. Please try again.') => {
+  const data = error?.response?.data;
+  if (data?.message) return data.message;
+  if (data?.errors) return Object.values(data.errors).flat().join(' ');
+  return fallback;
+};
+
+const getStoredUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('user')) || {};
+  } catch {
+    return {};
+  }
+};
+
 const AuthPage = ({ setAuth }) => {
   const navigate = useNavigate();
   const [isLoginView, setIsLoginView] = useState(true);
-  
-  // Form States
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const response = await authService.login({
-  email,
-  password
-});
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setIsSubmitting(true);
 
-localStorage.setItem('token', response.token);
+    try {
+      const payload = isLoginView ? { email, password } : { name, email, password };
+      const response = isLoginView
+        ? await authService.login(payload)
+        : await authService.register(payload);
+
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('isAuthenticated', 'true');
+      setAuth(true);
+      navigate('/blogs');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to authenticate with those details.'));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
-      
-      {/* 🚀 FIXED HEADER */}
-      <header className="bg-white border-b border-slate-200 h-20 w-full flex flex-row items-center justify-between px-4 sm:px-8 flex-shrink-0 z-10 shadow-sm overflow-hidden">
-        {/* Left Container: Logo & Name Stacking */}
-        <div className="flex flex-col justify-center items-start flex-shrink-0 py-1">
-          <img
-            src="/logo.webp"
-            alt="Karol Systems Logo"
-            style={{ height: '48px', width: 'auto', objectFit: 'contain' }}
-            className="flex-shrink-0 mb-0.5"
-          />
-          <div className="flex flex-col leading-none">
-            <span className="text-slate-900 text-sm font-bold tracking-wide whitespace-nowrap">
-              Karol Systems
-            </span>
-            <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-widest mt-0.5">
-              Pvt. Ltd.
-            </span>
-          </div>
+    <main className="auth-page">
+      <section className="auth-brand">
+        <img src="/logo.webp" alt="Karol Systems Logo" className="brand-logo" />
+        <div>
+          <p className="brand-name">Karol Systems</p>
+          <p className="brand-subtitle">Pvt. Ltd.</p>
         </div>
-        
-        {/* Right Container: Login and Register buttons */}
-        <div className="flex flex-row items-center gap-2 sm:gap-4 flex-shrink-0">
-          <button 
-            onClick={() => setIsLoginView(true)} 
-            className={`px-3 sm:px-4 py-2 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap ${
-              isLoginView 
-                ? 'text-blue-600 bg-blue-50' 
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+      </section>
+
+      <section className="auth-panel" aria-labelledby="auth-title">
+        <div className="auth-toggle" aria-label="Authentication mode">
+          <button
+            type="button"
+            className={isLoginView ? 'active' : ''}
+            onClick={() => {
+              setError('');
+              setIsLoginView(true);
+            }}
           >
             Login
           </button>
-          <button 
-            onClick={() => setIsLoginView(false)} 
-            className={`px-3 sm:px-4 py-2 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap ${
-              !isLoginView 
-                ? 'bg-blue-600 text-white shadow-sm' 
-                : 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm'
-            }`}
+          <button
+            type="button"
+            className={!isLoginView ? 'active' : ''}
+            onClick={() => {
+              setError('');
+              setIsLoginView(false);
+            }}
           >
             Register
           </button>
         </div>
-      </header>
 
-      {/* 🖼️ TWO-COLUMN LANDING LAYOUT (Matching Your Uploaded Reference Image) */}
-      <div className="flex-1 flex flex-col md:flex-row w-full max-w-7xl mx-auto px-4 sm:px-8 py-10 items-center justify-between gap-10">
-        
-        {/* Left Column: Form Container */}
-        <div className="w-full md:w-1/2 flex justify-center md:justify-start">
-          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-8 sm:p-10">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-slate-900">
-                {isLoginView ? 'Welcome back' : 'Create an account'}
-              </h2>
-              <p className="text-slate-500 text-sm mt-2">
-                {isLoginView 
-                  ? 'Enter your credentials to access your portal.' 
-                  : 'Sign up to start managing your company digital content.'}
-              </p>
-            </div>
+        <h1 id="auth-title">{isLoginView ? 'Welcome back' : 'Create account'}</h1>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {!isLoginView && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="John Doe"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm bg-slate-50 focus:bg-white"
-                  />
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
-                <input
-                  type="email"
-                  placeholder="admin@karolsystems.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm bg-slate-50 focus:bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm bg-slate-50 focus:bg-white"
-                />
-              </div>
-              
-              <button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all shadow-md shadow-blue-200 mt-2 text-sm"
-              >
-                {isLoginView ? 'Sign In' : 'Register Account'}
-              </button>
-            </form>
-          </div>
-        </div>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          {!isLoginView && (
+            <label>
+              Full Name
+              <input
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="System Admin"
+                required
+              />
+            </label>
+          )}
+          <label>
+            Email Address
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="admin@karolsystems.com"
+              required
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Enter password"
+              minLength={isLoginView ? undefined : 6}
+              required
+            />
+          </label>
 
-      </div>
-    </div>
+          {error && <p className="form-error">{error}</p>}
+
+          <button type="submit" className="primary-button full-width" disabled={isSubmitting}>
+            {isSubmitting ? 'Please wait...' : isLoginView ? 'Sign In' : 'Register Account'}
+          </button>
+        </form>
+      </section>
+    </main>
   );
 };
 
-
-// ==========================================
-// 2. SIDEBAR LAYOUT
-// ==========================================
 const SidebarLayout = ({ setAuth }) => {
   const navigate = useNavigate();
+  const storedUser = getStoredUser();
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    setAuth(false);
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // Local sign-out should still happen if the token is already invalid.
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('isAuthenticated');
+      setAuth(false);
+      navigate('/login');
+    }
   };
 
   return (
-    <div className="flex h-screen bg-slate-100 font-sans overflow-hidden">
-      
-      {/* 🚀 LEFT-ALIGNED SIDEBAR BRANDING */}
-      <aside className="w-60 bg-slate-900 flex flex-col flex-shrink-0 z-20">
-        
-        {/* Top-Left Header: Logo stacked over Company Name */}
-        <div className="h-24 flex flex-col justify-center items-start px-5 border-b border-slate-700/60">
-          <img
-            src="/logo.webp"
-            alt="Karol Systems Logo"
-            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
-            className="rounded mb-1.5"
-          />
-          <div className="flex flex-col leading-none">
-            <p className="text-white text-sm font-bold tracking-wide whitespace-nowrap">
-              Karol Systems
-            </p>
-            <p className="text-slate-500 text-[10px] uppercase tracking-widest mt-0.5">
-              Pvt. Ltd.
-            </p>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="sidebar-brand">
+          <img src="/logo.webp" alt="Karol Systems Logo" className="sidebar-logo" />
+          <div>
+            <p className="sidebar-name">Karol Systems</p>
+            <p className="sidebar-subtitle">Pvt. Ltd.</p>
           </div>
         </div>
 
-        {/* Navigation Section */}
-        <div className="flex-1 py-5 px-3 space-y-1">
-          <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Navigation</p>
-          <div className="flex items-center gap-3 bg-blue-600 text-white px-3 py-2.5 rounded-lg cursor-pointer font-semibold text-sm">
-            <FileText className="w-4 h-4" />
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          <p className="nav-label">Navigation</p>
+          <a className="nav-item active" href="/blogs" onClick={(event) => event.preventDefault()}>
+            <FileText size={18} />
             Blogs
-          </div>
-          <div className="flex items-center gap-3 text-slate-500 px-3 py-2.5 rounded-lg cursor-not-allowed font-medium text-sm opacity-50">
-            <LayoutDashboard className="w-4 h-4" />
-            Analytics
-            <span className="ml-auto text-[10px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded font-bold uppercase">Soon</span>
-          </div>
-        </div>
+          </a>
+        </nav>
 
-        {/* Logout Control */}
-        <div className="p-4 border-t border-slate-700/60">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors text-sm font-semibold"
-          >
-            <LogOut className="w-4 h-4" /> Sign Out
-          </button>
-        </div>
+        <button type="button" className="logout-button" onClick={handleLogout}>
+          <LogOut size={18} />
+          Sign Out
+        </button>
       </aside>
 
-      {/* Main Content Workspace Wrapper */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 z-10 shadow-sm">
+      <div className="content-shell">
+        <header className="topbar">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Content Management</h2>
-            <p className="text-xs text-slate-400">Karol Systems — Admin Portal</p>
+            <h2>Content Management</h2>
+            <p>Karol Systems Admin Portal</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-50 border border-blue-100 p-1.5 rounded-full">
-              <User className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="hidden md:block text-sm">
-              <p className="font-bold text-slate-800 leading-none text-xs">System Admin</p>
-              <p className="text-slate-400 mt-0.5 text-xs">admin@karolsystems.com</p>
+          <div className="profile-pill">
+            <span className="profile-icon">
+              <User size={16} />
+            </span>
+            <div>
+              <p>{storedUser.name || 'System Admin'}</p>
+              <span>{storedUser.email || 'admin@karolsystems.com'}</span>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="page-content">
           <Outlet />
         </main>
       </div>
     </div>
   );
 };
-// ==========================================
-// 3. BLOGS PAGE & TABLE COMPONENT
-// ==========================================
+
 const Blogs = () => {
   const [posts, setPosts] = useState([]);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -241,188 +221,292 @@ const Blogs = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [postToDelete, setPostToDelete] = useState(null);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => { fetchPosts(); }, []);
+  const fetchPosts = async () => {
+    setIsLoading(true);
+    setError('');
 
-  const fetchPosts = () => {
-    postService.getAll().then(data => setPosts(data)).catch(err => console.error(err));
+    try {
+      const data = await postService.getAll();
+      setPosts(data);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to load blog records.'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    postService
+      .getAll()
+      .then((data) => {
+        if (isMounted) {
+          setPosts(data);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setError(getErrorMessage(err, 'Unable to load blog records.'));
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const openAddModal = () => {
-    setEditingPostId(null); setTitle(''); setContent(''); setIsFormModalOpen(true);
+    setEditingPostId(null);
+    setTitle('');
+    setContent('');
+    setError('');
+    setIsFormModalOpen(true);
   };
 
   const openEditModal = (post) => {
-    setEditingPostId(post.id); setTitle(post.title); setContent(post.content); setIsFormModalOpen(true);
+    setEditingPostId(post.id);
+    setTitle(post.title);
+    setContent(post.content);
+    setError('');
+    setIsFormModalOpen(true);
   };
 
-  const handleSave = (e) => {
-    e.preventDefault();
-    const data = { title, content };
-    const request = editingPostId ? postService.update(editingPostId, data) : postService.create(data);
-    request.then(() => { fetchPosts(); setIsFormModalOpen(false); }).catch(err => console.error(err));
+  const handleSave = async (event) => {
+    event.preventDefault();
+    setIsSaving(true);
+    setError('');
+
+    try {
+      const data = { title, content };
+      if (editingPostId) {
+        await postService.update(editingPostId, data);
+      } else {
+        await postService.create(data);
+      }
+      await fetchPosts();
+      setIsFormModalOpen(false);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to save the blog entry.'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const confirmDelete = (id) => { setPostToDelete(id); setIsDeleteModalOpen(true); };
-
-  const handleDelete = () => {
-    postService.delete(postToDelete).then(() => { fetchPosts(); setIsDeleteModalOpen(false); });
+  const confirmDelete = (id) => {
+    setPostToDelete(id);
+    setIsDeleteModalOpen(true);
   };
 
-  const handleDeleteAll = () => {
-    if (postService.deleteAll) {
-      postService.deleteAll().then(() => { fetchPosts(); setIsDeleteAllModalOpen(false); });
+  const handleDelete = async () => {
+    try {
+      await postService.delete(postToDelete);
+      await fetchPosts();
+      setIsDeleteModalOpen(false);
+      setPostToDelete(null);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to delete the blog entry.'));
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      await postService.deleteAll();
+      await fetchPosts();
+      setIsDeleteAllModalOpen(false);
+    } catch (err) {
+      setError(getErrorMessage(err, 'Unable to delete all blog entries.'));
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 flex items-center gap-4">
-          <div className="bg-blue-50 p-2.5 rounded-lg"><BookOpen className="w-5 h-5 text-blue-600" /></div>
-          <div><p className="text-2xl font-bold text-slate-900">{posts.length}</p><p className="text-xs text-slate-500 font-medium">Total Blogs</p></div>
+    <section className="blogs-page">
+      <div className="summary-row">
+        <div className="summary-card">
+          <BookOpen size={22} />
+          <div>
+            <strong>{posts.length}</strong>
+            <span>Total Blogs</span>
+          </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 flex items-center gap-4">
-          <div className="bg-emerald-50 p-2.5 rounded-lg"><FileText className="w-5 h-5 text-emerald-600" /></div>
-          <div><p className="text-2xl font-bold text-slate-900">{posts.length}</p><p className="text-xs text-slate-500 font-medium">Published</p></div>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 flex items-center gap-4">
-          <div className="bg-violet-50 p-2.5 rounded-lg"><User className="w-5 h-5 text-violet-600" /></div>
-          <div><p className="text-2xl font-bold text-slate-900">1</p><p className="text-xs text-slate-500 font-medium">Author</p></div>
+        <div className="summary-card accent">
+          <FileText size={22} />
+          <div>
+            <strong>{posts.length}</strong>
+            <span>Published</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
+      <div className="page-heading">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Blogs Directory</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Create, manage, and publish company articles.</p>
+          <h1>Blogs</h1>
+          <p>Manage company blog records.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="page-actions">
           {posts.length > 0 && (
-            <button onClick={() => setIsDeleteAllModalOpen(true)} className="px-4 py-2 bg-white border border-red-200 text-red-500 font-semibold rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors text-sm">Delete All</button>
+            <button type="button" className="danger-outline-button" onClick={() => setIsDeleteAllModalOpen(true)}>
+              <Trash2 size={16} />
+              Delete All
+            </button>
           )}
-          <button onClick={openAddModal} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md shadow-blue-200 text-sm">
-            <Plus className="w-4 h-4" /> Add Blog
+          <button type="button" className="primary-button" onClick={openAddModal}>
+            <Plus size={16} />
+            Add Blog
           </button>
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="py-3.5 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Blog Name</th>
-                <th className="py-3.5 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Blog Description</th>
-                <th className="py-3.5 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Actions</th>
+      {error && !isFormModalOpen && <p className="page-error">{error}</p>}
+
+      <div className="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Blog Name</th>
+              <th>Blog Description</th>
+              <th className="actions-heading">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr>
+                <td colSpan="3" className="empty-cell">Loading blogs...</td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {posts.length === 0 ? (
-                <tr>
-                  <td colSpan="3" className="text-center py-20">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <div className="bg-slate-100 rounded-full p-4 mb-2"><FileText className="w-8 h-8 text-slate-400" /></div>
-                      <p className="text-slate-700 font-semibold">No blogs yet</p>
-                      <p className="text-slate-400 text-sm">Click "Add Blog" to publish your first article.</p>
+            ) : posts.length === 0 ? (
+              <tr>
+                <td colSpan="3" className="empty-cell">No blog records found.</td>
+              </tr>
+            ) : (
+              posts.map((post) => (
+                <tr key={post.id}>
+                  <td className="blog-title">{post.title}</td>
+                  <td>{post.content}</td>
+                  <td>
+                    <div className="row-actions">
+                      <button type="button" className="icon-button" onClick={() => openEditModal(post)} aria-label={`Edit ${post.title}`}>
+                        <Edit size={17} />
+                      </button>
+                      <button type="button" className="icon-button danger" onClick={() => confirmDelete(post.id)} aria-label={`Delete ${post.title}`}>
+                        <Trash2 size={17} />
+                      </button>
                     </div>
                   </td>
                 </tr>
-              ) : (
-                posts.map((post) => (
-                  <tr key={post.id} className="hover:bg-slate-50/70 transition-colors group">
-                    <td className="py-4 px-6 align-middle w-1/4 font-bold text-slate-900 text-sm">{post.title}</td>
-                    <td className="py-4 px-6 align-middle">
-                      <p className="text-slate-500 text-sm leading-relaxed">
-                        {post.content.length > 120 ? post.content.substring(0, 120) + '…' : post.content}
-                      </p>
-                    </td>
-                    <td className="py-4 px-6 align-middle text-right">
-                      <div className="flex justify-end gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEditModal(post)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit className="w-4 h-4" /></button>
-                        <button onClick={() => confirmDelete(post.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* --- Modals --- */}
       {isFormModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <div><h3 className="text-base font-bold text-slate-900">{editingPostId ? 'Edit Blog' : 'Create New Blog'}</h3></div>
-              <button onClick={() => setIsFormModalOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg"><X className="w-4 h-4" /></button>
+        <Modal title={editingPostId ? 'Edit Blog' : 'Add Blog'} onClose={() => setIsFormModalOpen(false)}>
+          <form className="modal-form" onSubmit={handleSave}>
+            <label>
+              Blog Name
+              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Enter blog name" required />
+            </label>
+            <label>
+              Blog Description
+              <textarea value={content} onChange={(event) => setContent(event.target.value)} placeholder="Enter blog description" rows="6" required />
+            </label>
+            {error && <p className="form-error">{error}</p>}
+            <div className="modal-actions">
+              <button type="button" className="secondary-button" onClick={() => setIsFormModalOpen(false)}>
+                Cancel
+              </button>
+              <button type="submit" className="primary-button" disabled={isSaving}>
+                {isSaving ? 'Saving...' : editingPostId ? 'Update Blog' : 'Create Blog'}
+              </button>
             </div>
-            <form onSubmit={handleSave} className="p-6 space-y-5">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Blog Title</label>
-                <input type="text" required value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-900 text-sm bg-slate-50 focus:bg-white" placeholder="Enter title" />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Content</label>
-                <textarea required rows="6" value={content} onChange={(e) => setContent(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none resize-y text-slate-900 text-sm bg-slate-50 focus:bg-white" placeholder="Write content..." />
-              </div>
-              <div className="flex justify-end gap-3 pt-1">
-                <button type="button" onClick={() => setIsFormModalOpen(false)} className="px-5 py-2.5 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg font-semibold text-sm">Cancel</button>
-                <button type="submit" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-md shadow-blue-200">{editingPostId ? 'Save Changes' : 'Publish Blog'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </Modal>
       )}
 
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-7 text-center">
-            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4"><Trash2 className="h-7 w-7 text-red-600" /></div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Delete Blog?</h3>
-            <p className="text-sm text-slate-500 mb-7">Are you sure you want to delete this blog?</p>
-            <div className="flex gap-3">
-              <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-2.5 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg font-semibold text-sm">No</button>
-              <button onClick={handleDelete} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm shadow-md shadow-red-200">Yes</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Delete Blog"
+          message="Are you sure you want to delete this blog?"
+          confirmLabel="Yes"
+          cancelLabel="No"
+          onCancel={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleDelete}
+        />
       )}
 
       {isDeleteAllModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-7 text-center border-t-4 border-red-500">
-            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-red-100 mb-4"><AlertTriangle className="h-7 w-7 text-red-600" /></div>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Clear All Blogs?</h3>
-            <p className="text-sm text-slate-500 mb-7">You are about to permanently delete all blog records. This cannot be reversed.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setIsDeleteAllModalOpen(false)} className="flex-1 py-2.5 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg font-semibold text-sm">Cancel</button>
-              <button onClick={handleDeleteAll} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm shadow-md shadow-red-200">Delete All</button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Delete All Blogs"
+          message="Are you sure you want to delete all blogs?"
+          confirmLabel="Delete All"
+          cancelLabel="Cancel"
+          onCancel={() => setIsDeleteAllModalOpen(false)}
+          onConfirm={handleDeleteAll}
+        />
       )}
-    </div>
+    </section>
   );
 };
 
-// ==========================================
-// MAIN ROUTER
-// ==========================================
+const Modal = ({ title, onClose, children }) => (
+  <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div className="modal-card">
+      <header className="modal-header">
+        <h3 id="modal-title">{title}</h3>
+        <button type="button" className="icon-button" onClick={onClose} aria-label="Close modal">
+          <X size={18} />
+        </button>
+      </header>
+      {children}
+    </div>
+  </div>
+);
+
+const ConfirmModal = ({ title, message, confirmLabel, cancelLabel, onCancel, onConfirm }) => (
+  <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div className="confirm-card">
+      <div className="confirm-icon">
+        <AlertTriangle size={28} />
+      </div>
+      <h3 id="confirm-title">{title}</h3>
+      <p>{message}</p>
+      <div className="confirm-actions">
+        <button type="button" className="secondary-button" onClick={onCancel}>
+          {cancelLabel}
+        </button>
+        <button type="button" className="danger-button" onClick={onConfirm}>
+          {confirmLabel}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(
-    localStorage.getItem('isAuthenticated') === 'true'
+    localStorage.getItem('isAuthenticated') === 'true' && Boolean(localStorage.getItem('token')),
   );
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<AuthPage setAuth={setIsAuthenticated} />} />
-        <Route element={isAuthenticated ? <SidebarLayout setAuth={setIsAuthenticated} /> : <Navigate to="/login" />}>
+        <Route
+          element={
+            isAuthenticated ? <SidebarLayout setAuth={setIsAuthenticated} /> : <Navigate to="/login" replace />
+          }
+        >
           <Route path="/blogs" element={<Blogs />} />
-          <Route path="/" element={<Navigate to="/blogs" />} />
+          <Route path="/" element={<Navigate to="/blogs" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
