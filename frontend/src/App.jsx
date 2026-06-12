@@ -10,31 +10,45 @@ const AuthPage = ({ setAuth }) => {
   const navigate = useNavigate();
   const [isLoginView, setIsLoginView] = useState(true);
   
+  // Form States
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email && password) {
-      localStorage.setItem('isAuthenticated', 'true');
-      setAuth(true);
-      navigate('/blogs');
-    }
+    const response = await authService.login({
+  email,
+  password
+});
+
+localStorage.setItem('token', response.token);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
       
-      {/* 🚀 TRUE SINGLE-LINE HEADER */}
-      <header className="bg-white border-b border-slate-200 h-16 w-full flex flex-row items-center justify-between px-4 sm:px-8 flex-shrink-0 z-10 shadow-sm overflow-hidden">
-        <div className="flex flex-row items-center gap-2 sm:gap-3 flex-shrink-0">
-          <img src="/logo.webp" alt="Karol Systems Logo" className="h-8 w-8 object-contain flex-shrink-0" />
-          <span className="text-slate-900 text-base sm:text-lg font-bold tracking-wide whitespace-nowrap">
-            Karol Systems
-          </span>
+      {/* 🚀 FIXED HEADER */}
+      <header className="bg-white border-b border-slate-200 h-20 w-full flex flex-row items-center justify-between px-4 sm:px-8 flex-shrink-0 z-10 shadow-sm overflow-hidden">
+        {/* Left Container: Logo & Name Stacking */}
+        <div className="flex flex-col justify-center items-start flex-shrink-0 py-1">
+          <img
+            src="/logo.webp"
+            alt="Karol Systems Logo"
+            style={{ height: '48px', width: 'auto', objectFit: 'contain' }}
+            className="flex-shrink-0 mb-0.5"
+          />
+          <div className="flex flex-col leading-none">
+            <span className="text-slate-900 text-sm font-bold tracking-wide whitespace-nowrap">
+              Karol Systems
+            </span>
+            <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-widest mt-0.5">
+              Pvt. Ltd.
+            </span>
+          </div>
         </div>
         
+        {/* Right Container: Login and Register buttons */}
         <div className="flex flex-row items-center gap-2 sm:gap-4 flex-shrink-0">
           <button 
             onClick={() => setIsLoginView(true)} 
@@ -59,69 +73,75 @@ const AuthPage = ({ setAuth }) => {
         </div>
       </header>
 
-      {/* 📝 Centered Card Area */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-8 sm:p-10">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">
-              {isLoginView ? 'Welcome back' : 'Create an account'}
-            </h2>
-            <p className="text-slate-500 text-sm mt-2">
-              {isLoginView 
-                ? 'Enter your credentials to access your portal.' 
-                : 'Sign up to start managing your company digital content.'}
-            </p>
-          </div>
+      {/* 🖼️ TWO-COLUMN LANDING LAYOUT (Matching Your Uploaded Reference Image) */}
+      <div className="flex-1 flex flex-col md:flex-row w-full max-w-7xl mx-auto px-4 sm:px-8 py-10 items-center justify-between gap-10">
+        
+        {/* Left Column: Form Container */}
+        <div className="w-full md:w-1/2 flex justify-center md:justify-start">
+          <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-sm p-8 sm:p-10">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-slate-900">
+                {isLoginView ? 'Welcome back' : 'Create an account'}
+              </h2>
+              <p className="text-slate-500 text-sm mt-2">
+                {isLoginView 
+                  ? 'Enter your credentials to access your portal.' 
+                  : 'Sign up to start managing your company digital content.'}
+              </p>
+            </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLoginView && (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {!isLoginView && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
+                  <input
+                    type="text"
+                    placeholder="John Doe"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm bg-slate-50 focus:bg-white"
+                  />
+                </div>
+              )}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
                 <input
-                  type="text"
-                  placeholder="John Doe"
+                  type="email"
+                  placeholder="admin@karolsystems.com"
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm bg-slate-50 focus:bg-white"
                 />
               </div>
-            )}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
-              <input
-                type="email"
-                placeholder="admin@karolsystems.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm bg-slate-50 focus:bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm bg-slate-50 focus:bg-white"
-              />
-            </div>
-            
-            <button
-              type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all shadow-md shadow-blue-200 mt-2 text-sm"
-            >
-              {isLoginView ? 'Sign In' : 'Register Account'}
-            </button>
-          </form>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400 text-sm bg-slate-50 focus:bg-white"
+                />
+              </div>
+              
+              <button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-3 rounded-lg transition-all shadow-md shadow-blue-200 mt-2 text-sm"
+              >
+                {isLoginView ? 'Sign In' : 'Register Account'}
+              </button>
+            </form>
+          </div>
         </div>
+
       </div>
     </div>
   );
 };
+
 
 // ==========================================
 // 2. SIDEBAR LAYOUT
@@ -137,15 +157,29 @@ const SidebarLayout = ({ setAuth }) => {
 
   return (
     <div className="flex h-screen bg-slate-100 font-sans overflow-hidden">
+      
+      {/* 🚀 LEFT-ALIGNED SIDEBAR BRANDING */}
       <aside className="w-60 bg-slate-900 flex flex-col flex-shrink-0 z-20">
-        <div className="h-16 flex items-center px-5 border-b border-slate-700/60">
-          <img src="/logo.webp" alt="Logo" className="w-8 h-8 object-contain mr-2.5 rounded-lg bg-white/10 p-1" />
-          <div>
-            <p className="text-white text-sm font-bold leading-tight">Karol Systems</p>
-            <p className="text-slate-500 text-[10px] uppercase tracking-widest">Pvt. Ltd.</p>
+        
+        {/* Top-Left Header: Logo stacked over Company Name */}
+        <div className="h-24 flex flex-col justify-center items-start px-5 border-b border-slate-700/60">
+          <img
+            src="/logo.webp"
+            alt="Karol Systems Logo"
+            style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+            className="rounded mb-1.5"
+          />
+          <div className="flex flex-col leading-none">
+            <p className="text-white text-sm font-bold tracking-wide whitespace-nowrap">
+              Karol Systems
+            </p>
+            <p className="text-slate-500 text-[10px] uppercase tracking-widest mt-0.5">
+              Pvt. Ltd.
+            </p>
           </div>
         </div>
 
+        {/* Navigation Section */}
         <div className="flex-1 py-5 px-3 space-y-1">
           <p className="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Navigation</p>
           <div className="flex items-center gap-3 bg-blue-600 text-white px-3 py-2.5 rounded-lg cursor-pointer font-semibold text-sm">
@@ -159,6 +193,7 @@ const SidebarLayout = ({ setAuth }) => {
           </div>
         </div>
 
+        {/* Logout Control */}
         <div className="p-4 border-t border-slate-700/60">
           <button
             onClick={handleLogout}
@@ -169,6 +204,7 @@ const SidebarLayout = ({ setAuth }) => {
         </div>
       </aside>
 
+      {/* Main Content Workspace Wrapper */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 z-10 shadow-sm">
           <div>
@@ -193,7 +229,6 @@ const SidebarLayout = ({ setAuth }) => {
     </div>
   );
 };
-
 // ==========================================
 // 3. BLOGS PAGE & TABLE COMPONENT
 // ==========================================
@@ -316,6 +351,7 @@ const Blogs = () => {
         </div>
       </div>
 
+      {/* --- Modals --- */}
       {isFormModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
